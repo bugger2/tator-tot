@@ -1,0 +1,116 @@
+#+TITLE: Tator Tot Rookie Robot
+
+** Introduction
+
+This repository is meant to serve as an example for Idahoan FRC rookie teams
+looking to become aquainted with FRC programming, and programming in general.
+
+Should you have any questions or become confused, please feel free to reach out
+to FRC #2122, Team Tators, or myself. (who is a member of said team)
+
+The important parts of this project exist under the ~src/main/java/frc/robot/~
+directory. Everything else is to support the building of the code in that
+directory, and will be there when you create a new robot project this
+season. (aside from vendordeps, which we'll cover)
+
+** Git/Github
+
+This repository is hosted on a site called Github. It allows you to store git
+repositories in one central location. A git repository is a repository of files
+that are version controlled with a tool called git.
+
+There are many helpful guides on how to use both git and github, and I would
+recommend learning how to use both to store and version your codef.
+
+** Respository Structure
+
+Any directory not mentioned here can be assumed to be storing build files or
+build configurations
+
+|-----------------------------------+------------------------------------------------------------|
+| ~build.gradle~                    | The primary configuration for the build tool. This defines |
+|                                   | how the build tool (gradle) should compile the java source |
+|                                   | code into a jar that will be sent to the robot and run     |
+|-----------------------------------+------------------------------------------------------------|
+| ~.github/workflows/main.yml~      | Defines the steps the CI runner for Github should take to  |
+|                                   | build the code. This will display a checkmark next to any  |
+|                                   | commit that is to be merged into or is on the main branch  |
+|                                   | (which is where you should store stable robot code)        |
+|-----------------------------------+------------------------------------------------------------|
+| ~src/main/java/frc/robot/~        | Where all of the robot code is stored.                     |
+|-----------------------------------+------------------------------------------------------------|
+| ~vendordeps/~                     | Not all resources are availble through WPILib. Many        |
+|                                   | vendors supply "vendordeps" that provide libraries with    |
+|                                   | which you can interface with their hardware. The files in  |
+|                                   | this directory define where to get these libraries         |
+|-----------------------------------+------------------------------------------------------------|
+| ~.wpilib/wpilib_preferences.json~ | Defines a few options. YOU MUST CHANGE THE LINE SPECIFYING |
+|                                   | THE TEAM NUMBER TO YOUR OWN                                |
+|-----------------------------------+------------------------------------------------------------|
+
+** Concepts
+
+There are many concepts that are difficult to wrap your head around that one
+must learn in order to be an effective FRC programmer. This does not go over any
+prerequisite concepts universal to programming such as variables, lambda
+functions, or OOP. Conceptual knowledge of how a robot program flows can be
+achieved without this prerequisite knowledge, but cannot be executed effectively
+without it.
+
+*** Commands
+
+A "Command" is something that defines an action to take. It is integral to the
+command framework provided by WPILib and offers simple, readable support for
+defining mutually exclusive actions for the robot to take. Only one command can
+be running on a subsystem at a time (this will be explained more in a bit), so
+one cannot accidentally have two actions simultaneously controlling one motor,
+which can be dangerous.
+
+Commands can be chained together such that they run in parallel, one after
+another, in a race, etc. They can also be cancelled by another command sharing
+the same subsystem or by a specified condition.
+
+For a command to "run on a subsystem" means that command has ownership over that
+subsystem. All commands have a defined list of what subsytems they own, and are
+typically assigned that subsystem because they actuate something within that
+subsystem.
+
+*** Subsystems
+
+There is a folder called ~src/main/java/frc/robot/subsystems/~. This folder
+contains several classes that are all subsystems. Literally, a subsystem is any
+class that extends the ~SubsystemBase~ class. More intuitively, a subsystem is a
+hardware resource that has control over a set of actuators and sensors that are
+deeply related in some way. For example, the intake has a lot of interaction
+between the intake sensor and motor, so they are paired together in this
+subsystem.
+
+Subsystems can also be controlled through commands, and are another key part of
+the command framework. As mentioned previously, only one command can be run on a
+subsystem at a time. The ~SubsystemBase~ class provides several methods that
+implicitly give the generated command ownership over the subsystem, so one can,
+for example, create a command by calling ~subsystem.run(() -> {})~ rather than
+~Command command = Commands.run(() -> {}); command.setRequirements(subsystem);~.
+
+*** Triggers
+
+Subsystems often need to work together to accomplish a task. This can be
+accomplished through command chaining most of the time, but it is often more
+readable or ergonomic to combine actions together with triggers.
+
+A trigger is another part of the command framework. They are an event that can
+be bound to an action. For example, in the ~Robot.java~ constructor, all
+controller bindings are simply triggers. The event is a button press, and you
+can define a command to be run given some condition about that event, such as
+turning on, turning off, or changing.
+
+*** Command Scheduler
+
+The command framework is run through a singleton called the command
+scheduler. Every robot tick, (20ms) the command scheduler runs through one tick,
+(see the ~robotPeriodic()~ function in ~Robot.java~) which will run each command
+that's currently active, check if they need to be finished, check triggers, etc.
+
+This isn't super important for writing effective command based code, but it is
+also fairly important to understand that it's not magic powering this thing.
+
