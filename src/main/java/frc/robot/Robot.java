@@ -30,16 +30,21 @@ public class Robot extends TimedRobot {
         intake = new Intake();
         shooter = new Shooter();
 
+        // if no other command is running on the drivetrain, make it drive
         drivetrain.setDefaultCommand(
-            drivetrain.drive(controller::getLeftX, controller::getRightY)
+            drivetrain.drive(controller::getLeftX, controller::getRightX)
         );
 
+        // when the left trigger is held, and the sensor is NOT hit, run the picker motor
+        // `whileTrue` kills that command if either condition becomes false
         controller.leftTrigger().and(intake.gamePieceDetected.negate())
             .whileTrue(intake.feed());
 
+        // when the right trigger is held, and the sensor is hit, shoot the game piece
         controller.rightTrigger().and(intake.gamePieceDetected)
             .onTrue(shooter.shoot());
 
+        // once the gamepiece has left the sensor for 0.5 seconds, stop shooting
         intake.gamePieceDetected.negate()
             .debounce(0.5)
             .onTrue(shooter.stop());
@@ -64,11 +69,14 @@ public class Robot extends TimedRobot {
 
     @Override
     public void autonomousInit() {
-        autonomousCommand = drivetrain.drive(() -> 0.5, () -> 0.5)
-            .withTimeout(3)
-            .andThen(drivetrain.turn(Degrees.of(180)))
-            .andThen(drivetrain.drive(() -> 0.5, () -> 0.5)
-                .withTimeout(3));
+        autonomousCommand = drivetrain.drive(() -> 0.5, () -> 0) // drive at half power straight forward
+            .until(() -> drivetrain.getOdometryPose().getTranslation().getX() >= 1) // until you've passed 1 meter
+            .andThen(drivetrain.turn(Degrees.of(180))) // after that, turn 180 degrees
+            .andThen(drivetrain.drive(() -> 0.5, () -> 0.0) // and after that, drive half power straight forward
+                // ("forward" is robot relative in this case, meaning drive towards the bots front, which is now turned 180 degrees)
+                .until(() -> drivetrain.getOdometryPose().getTranslation().getX() <= 0))
+                // ^-- stop driving once you've reached the starting position of 0 meters            
+            .beforeStarting(drivetrain::resetGyro); // and be sure to reset the gyro before driving
 
         if (autonomousCommand != null) {
             autonomousCommand.schedule();
